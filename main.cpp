@@ -16,6 +16,7 @@ class Board {
 private:
     std::vector<Tile> tiles;
     bool gameStarted = false;
+    bool gameOver = false;
     int width;  // Based on 0->n not 1->n
     int height; // Based on 0->n not 1->n
     int numMines;
@@ -25,6 +26,7 @@ public:
         numMines = (width * height) / 8; // 1/8th for testing, subject to change
     }
 
+    bool getGameState();
     Tile& getTile(int x, int y);
     std::vector<int> generateMinePositions();
     void setMines(int x, int y);
@@ -33,12 +35,30 @@ public:
     void tileSelected(int x, int y);
     void clearBoard();
     void revealBoard();
+
+    void printAsciiBoard();
 };
 
 int main() {
     int width = 20 - 1;
     int height = 20 - 1;
     Board board(width, height);
+
+    int x;
+    int y;
+    while (board.getGameState()) {
+        board.printAsciiBoard();
+        std::cout << "Enter x pos:";
+        std::cin >> x;
+        std::cout << "Enter y pos:";
+        std::cin >> y;
+        board.tileSelected(x,y);
+    }
+
+}
+
+bool Board::getGameState() {
+    return gameOver;
 }
 
 Tile& Board::getTile(int x, int y) {
@@ -110,6 +130,11 @@ void Board::tileSelected(int x, int y) {
         setMines(x, y);
     }
 
+    if (tiles[y * width + x].isMine) {
+        gameOver = true;
+        std::cout << "\n" << "Game Over" << std::endl;
+    }
+
     checkNeighbors(x, y);
 }
 
@@ -121,4 +146,21 @@ void Board::revealBoard() {
     for (auto& tile : tiles) {
         if (!tile.isRevealed) tile.isRevealed = true;
     }
+}
+
+void Board::printAsciiBoard() {
+    for (size_t i=0; i < tiles.size(); ++i) {
+        if (i > width && (i % width == 0)) {
+            std::cout << std::endl;
+        }
+        
+        if (tiles[i].isRevealed && !tiles[i].isMine) {
+            std::cout << tiles[i].numNeighbors << " | ";
+        } else if (!tiles[i].isRevealed) {
+            std::cout << "-" << " | ";
+        } else if (tiles[i].isMine) {
+            std::cout << "M" << " | ";
+        }
+    }
+    std::cout << std::endl;
 }
