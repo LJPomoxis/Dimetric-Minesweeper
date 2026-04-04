@@ -17,15 +17,18 @@ private:
     bool gameStarted = false;
     int width;  // Based on 0->n not 1->n
     int height; // Based on 0->n not 1->n
+    int numMines;
 
 public:
     Board(int w, int h) : width(w), height(h) {
-        tiles = generateBoard(width, height);
+        tiles = generateBoard();
+        numMines = (width * height) / 8; // 1/8th for testing, subject to change
     }
 
     Tile& getTile(int x, int y);
-    std::vector<Tile>& generateBoard(int width, int height);
-    std::vector<int> generateMines(int width, int height, int numMines);
+    std::vector<Tile>& generateBoard();
+    std::vector<int> generateMinePositions();
+    void setMines(int x, int y);
     void revealTile(int x, int y);
     void checkNeighbors(int x, int y);
     void tileSelected(int x, int y);
@@ -41,26 +44,44 @@ Tile& Board::getTile(int x, int y) {
     return tiles[y * width + x];
 }
 
-std::vector<Tile>& Board::generateBoard(int width, int height) {
+std::vector<Tile>& Board::generateBoard() {
 
 }
 
-std::vector<int> Board::generateMines(int width, int height, int numMines) {
+std::vector<int> Board::generateMinePositions() {
     std::vector<int> cells(width*height);
     std::iota(cells.begin(), cells.end(), 0);
 
     std::random_device rd;
     std::mt19937 gen(rd());
 
-    for (int i=0; i < numMines; ++i) {
+    for (int i=0; i < (numMines + 1); ++i) {
         std::uniform_int_distribution<int> dist(i, cells.size() - 1);
         int j = dist(gen);
 
         std::swap(cells[i], cells[j]);
     }
 
-    cells.resize(numMines);
+    cells.resize(numMines + 1); // In the case that one selected position is the initial click position
     return cells;
+}
+
+void Board::setMines(int x, int y) {
+    std::vector<int> mineIndices = generateMinePositions();
+    bool skip = false;
+    for (int i=0; i < (numMines + 1); ++i) {
+        if (mineIndices[i] == (y * width + x)) {
+            skip = true;
+            continue;
+        }
+
+        if ((i == numMines) && skip == false) {
+            continue;
+        }
+
+        tiles[mineIndices[i]].isMine = true;
+    }
+    gameStarted = true;
 }
 
 void Board::revealTile(int x, int y) {
@@ -91,9 +112,10 @@ void Board::checkNeighbors(int x, int y) {
 
 void Board::tileSelected(int x, int y) {
     if (!gameStarted) {
-
-        return;
+        setMines(x, y);
     }
+
+    checkNeighbors(x, y);
 }
 
 void Board::clearBoard() {
