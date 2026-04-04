@@ -3,6 +3,7 @@
 #include <random>
 #include <numeric>
 #include <algorithm>
+#include <iostream>
 
 struct Tile {
     bool isMine = false;
@@ -20,13 +21,11 @@ private:
     int numMines;
 
 public:
-    Board(int w, int h) : width(w), height(h) {
-        tiles = generateBoard();
+    Board(int w, int h) : width(w), height(h), tiles(h*w) {
         numMines = (width * height) / 8; // 1/8th for testing, subject to change
     }
 
     Tile& getTile(int x, int y);
-    std::vector<Tile>& generateBoard();
     std::vector<int> generateMinePositions();
     void setMines(int x, int y);
     void revealTile(int x, int y);
@@ -37,15 +36,13 @@ public:
 };
 
 int main() {
-
+    int width = 20 - 1;
+    int height = 20 - 1;
+    Board board(width, height);
 }
 
 Tile& Board::getTile(int x, int y) {
     return tiles[y * width + x];
-}
-
-std::vector<Tile>& Board::generateBoard() {
-
 }
 
 std::vector<int> Board::generateMinePositions() {
@@ -62,7 +59,7 @@ std::vector<int> Board::generateMinePositions() {
         std::swap(cells[i], cells[j]);
     }
 
-    cells.resize(numMines + 1); // In the case that one selected position is the initial click position
+    cells.resize(numMines + 1); // In the case that a selected index matches the position of the initial click
     return cells;
 }
 
@@ -75,9 +72,7 @@ void Board::setMines(int x, int y) {
             continue;
         }
 
-        if ((i == numMines) && skip == false) {
-            continue;
-        }
+        if (i == numMines && skip == false) continue;
 
         tiles[mineIndices[i]].isMine = true;
     }
