@@ -16,7 +16,7 @@ class Board {
 private:
     std::vector<Tile> tiles;
     bool gameStarted = false;
-    bool gameOver = false;
+    bool gameRunning = true;
     int width;  // Based on 0->n not 1->n
     int height; // Based on 0->n not 1->n
     int numMines;
@@ -27,7 +27,6 @@ public:
     }
 
     bool getGameState();
-    Tile& getTile(int x, int y);
     std::vector<int> generateMinePositions();
     void setMines(int x, int y);
     void revealTile(int x, int y);
@@ -40,10 +39,12 @@ public:
 };
 
 int main() {
+    std::cout << "hello world\n";
     int width = 20 - 1;
     int height = 20 - 1;
     Board board(width, height);
 
+    std::cout << "testing \n";
     int x;
     int y;
     while (board.getGameState()) {
@@ -58,11 +59,7 @@ int main() {
 }
 
 bool Board::getGameState() {
-    return gameOver;
-}
-
-Tile& Board::getTile(int x, int y) {
-    return tiles[y * width + x];
+    return gameRunning;
 }
 
 std::vector<int> Board::generateMinePositions() {
@@ -131,7 +128,7 @@ void Board::tileSelected(int x, int y) {
     }
 
     if (tiles[y * width + x].isMine) {
-        gameOver = true;
+        gameRunning = false;
         std::cout << "\n" << "Game Over" << std::endl;
     }
 
