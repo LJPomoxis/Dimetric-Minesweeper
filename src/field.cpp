@@ -1,4 +1,4 @@
-#include "field.hpp"
+#include "field/field.hpp"
 #include <iostream>
 #include <random>
 
@@ -16,9 +16,6 @@ void printGrayscale(int val) {
     std::cout << "\033[38;5;" << ansiCode << "m" << val << "\033[0m";
 }
 
-bool Field::getGameState() {
-    return gameRunning;
-}
 
 std::vector<int> Field::generateMinePositions() {
     std::vector<int> cells(width*height);
@@ -128,3 +125,43 @@ void Field::revealField() {
 }
 
 void Field::printAsciiField() {
+    std::cout << "   | ";
+    for (int i=0; i < width; ++i) {
+        std::cout << i;
+        std::string format = "";
+        if (i > 9) {
+            format = "| ";
+        } else {
+            format = " | ";
+        }
+        std::cout << format;
+    }
+    std::cout << std::endl << "\n0  | ";
+    for (size_t i=0; i < cells.size(); ++i) {
+        if (i > (width - 1) && (i % width == 0)) {
+            int rows = i / width;
+            std::cout << std::endl;
+            std::cout << rows;
+            std::string spaces = "";
+            if (rows < 10) {
+                spaces += " ";
+            }
+            spaces += " | ";
+            std::cout << spaces;
+        }
+        
+        if (cells[i].isRevealed && !cells[i].isMine) {
+            if (cells[i].neighborMineCount == 0) {
+                std::cout << "  | ";
+            } else {
+                printGrayscale(cells[i].neighborMineCount);
+                std::cout << " | ";
+            }
+        } else if (!cells[i].isRevealed) {
+            std::cout << "-" << " | ";
+        } else if (cells[i].isMine) {
+            std::cout << "\033[31;49m" << "X" << "\033[0m" << " | ";
+        }
+    }
+    std::cout << std::endl;
+}

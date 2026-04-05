@@ -22,7 +22,7 @@ private:
 public:
     Field(int w, int h);
 
-    bool getGameState() { return gameStarted; }
+    bool getGameState() { return gameRunning; }
     std::vector<int> generateMinePositions();
     void incrementMineNeighbors(int pos);
     void setMines(int x, int y);
