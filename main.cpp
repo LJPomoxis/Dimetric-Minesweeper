@@ -5,16 +5,18 @@
 #include <algorithm>
 #include <iostream>
 
-struct Tile {
+void printGrayscale(int val);
+
+struct Cell {
     bool isMine = false;
     bool isRevealed = false;
     bool isFlagged = false;
-    int numNeighbors = 0;
+    int neighborMineCount = 0;
 };
 
-class Board {
+class Field {
 private:
-    std::vector<Tile> tiles;
+    std::vector<Cell> cells;
     bool gameStarted = false;
     bool gameRunning = true;
     int width;  // Based on 0->n not 1->n
@@ -22,47 +24,65 @@ private:
     int numMines;
 
 public:
-    Board(int w, int h) : width(w), height(h), tiles(h*w) {
+    Field(int w, int h) : width(w), height(h), cells(h*w) {
         numMines = (width * height) / 8; // 1/8th for testing, subject to change
     }
 
     bool getGameState();
     std::vector<int> generateMinePositions();
+    void incrementMineNeighbors(int pos);
     void setMines(int x, int y);
-    void revealTile(int x, int y);
+    void revealCell(int x, int y);
     void checkNeighbors(int x, int y);
-    void tileSelected(int x, int y);
-    void clearBoard();
-    void revealBoard();
+    void cellSelected(int x, int y);
+    void clearField();
+    void revealField();
 
-    void printAsciiBoard();
+    void printAsciiField();
+};
+
+class World {
+private:
+    Field field;
+
+public:
+    World(int w, int h) : field(w,h) {}
 };
 
 int main() {
-    std::cout << "hello world\n";
-    int width = 20 - 1;
-    int height = 20 - 1;
-    Board board(width, height);
+    int width = 20;
+    int height = 20;
+    Field field(width, height);
 
-    std::cout << "testing \n";
     int x;
     int y;
-    while (board.getGameState()) {
-        board.printAsciiBoard();
+    while (field.getGameState()) {
+        field.printAsciiField();
         std::cout << "Enter x pos:";
         std::cin >> x;
         std::cout << "Enter y pos:";
         std::cin >> y;
-        board.tileSelected(x,y);
+        field.cellSelected(x,y);
     }
-
+    field.revealField();
+    field.printAsciiField();
+    return 0;
 }
 
-bool Board::getGameState() {
+void printGrayscale(int val) {
+    int level = 9 - val;
+    if (val > 8) level = 1;
+
+    int ansiCode = 232 + (level - 1) * 3;
+
+    std::cout << "\033[38;5;" << ansiCode << "m" << val << "\033[0m";
+}
+
+bool Field::getGameState() {
     return gameRunning;
 }
 
-std::vector<int> Board::generateMinePositions() {
+std::vector<int> Field::generateMinePositions() {
     std::vector<int> cells(width*height);
     std::iota(cells.begin(), cells.end(), 0);
 
@@ -80,7 +100,24 @@ std::vector<int> Board::generateMinePositions() {
     return cells;
 }
 
-void Board::setMines(int x, int y) {
+void Field::incrementMineNeighbors(int pos) {
+    int x = pos % width;
+    int y = pos / height;
+    for (int diffX=-1; diffX < 2; ++diffX) {
+        for (int diffY=-1; diffY < 2; ++diffY) {
+            if (diffX == 0 && diffY == 0) continue;
+
+            int xCheck = x + diffX;
+            int yCheck = y + diffY;
+            if (xCheck >= 0 && xCheck <= width && yCheck >= 0 && yCheck <= height) {
+                int pos2 = yCheck * width + xCheck;
+                cells[pos2].neighborMineCount++;
+            }
+        }
+    }
+}
+
+void Field::setMines(int x, int y) {
     std::vector<int> mineIndices = generateMinePositions();
     bool skip = false;
     for (int i=0; i < (numMines + 1); ++i) {
@@ -91,22 +128,23 @@ void Board::setMines(int x, int y) {
 
         if (i == numMines && skip == false) continue;
 
-        tiles[mineIndices[i]].isMine = true;
+        cells[mineIndices[i]].isMine = true;
+        incrementMineNeighbors(mineIndices[i]);
     }
     gameStarted = true;
 }
 
-void Board::revealTile(int x, int y) {
+void Field::revealCell(int x, int y) {
     int pos = y * width + x;
-    if (!tiles[pos].isMine) {
-        tiles[pos].isRevealed = true;
-        if (tiles[pos].numNeighbors == 0) {
+    if (!cells[pos].isMine) {
+        cells[pos].isRevealed = true;
+        if (cells[pos].neighborMineCount == 0) {
             checkNeighbors(x,y);
         }
     }
 }
 
-void Board::checkNeighbors(int x, int y) {
+void Field::checkNeighbors(int x, int y) {
     for (int diffX=-1; diffX < 2; ++diffX) {
         for (int diffY=-1; diffY < 2; ++diffY) {
             if (diffX == 0 && diffY == 0) continue;
@@ -114,49 +152,80 @@ void Board::checkNeighbors(int x, int y) {
             int xCheck = x + diffX;
             int yCheck = y + diffY;
             if (xCheck >= 0 && xCheck <= width && yCheck >= 0 && yCheck <= height) {
-                if (!tiles[yCheck * width + xCheck].isRevealed) {
-                    revealTile(xCheck, yCheck);
+                if (!cells[yCheck * width + xCheck].isRevealed) {
+                    revealCell(xCheck, yCheck);
                 }
             }
         }
     }
 }
 
-void Board::tileSelected(int x, int y) {
+void Field::cellSelected(int x, int y) {
     if (!gameStarted) {
         setMines(x, y);
     }
 
-    if (tiles[y * width + x].isMine) {
-        gameRunning = false;
+    int pos = y * width + x;
+    if (cells[pos].isMine) {
         std::cout << "\n" << "Game Over" << std::endl;
+        gameRunning = false;
+        return;
+    } else {
+        cells[pos].isRevealed = true;
     }
 
-    checkNeighbors(x, y);
-}
-
-void Board::clearBoard() {
-    std::vector<Tile>().swap(tiles);
-}
-
-void Board::revealBoard() {
-    for (auto& tile : tiles) {
-        if (!tile.isRevealed) tile.isRevealed = true;
+    if (cells[pos].neighborMineCount == 0) {
+        checkNeighbors(x, y);
     }
 }
 
-void Board::printAsciiBoard() {
-    for (size_t i=0; i < tiles.size(); ++i) {
-        if (i > width && (i % width == 0)) {
+void Field::clearField() {
+    std::vector<Cell>().swap(cells);
+}
+
+void Field::revealField() {
+    for (auto& cell : cells) {
+        if (!cell.isRevealed) cell.isRevealed = true;
+    }
+}
+
+void Field::printAsciiField() {
+    std::cout << "   | ";
+    for (int i=0; i < width; ++i) {
+        std::cout << i;
+        std::string format = "";
+        if (i > 9) {
+            format = "| ";
+        } else {
+            format = " | ";
+        }
+        std::cout << format;
+    }
+    std::cout << std::endl << "\n0  | ";
+    for (size_t i=0; i < cells.size(); ++i) {
+        if (i > (width - 1) && (i % width == 0)) {
+            int rows = i / width;
             std::cout << std::endl;
+            std::cout << rows;
+            std::string spaces = "";
+            if (rows < 10) {
+                spaces += " ";
+            }
+            spaces += " | ";
+            std::cout << spaces;
         }
         
-        if (tiles[i].isRevealed && !tiles[i].isMine) {
-            std::cout << tiles[i].numNeighbors << " | ";
-        } else if (!tiles[i].isRevealed) {
+        if (cells[i].isRevealed && !cells[i].isMine) {
+            if (cells[i].neighborMineCount == 0) {
+                std::cout << "  | ";
+            } else {
+                printGrayscale(cells[i].neighborMineCount);
+                std::cout << " | ";
+            }
+        } else if (!cells[i].isRevealed) {
             std::cout << "-" << " | ";
-        } else if (tiles[i].isMine) {
-            std::cout << "M" << " | ";
+        } else if (cells[i].isMine) {
+            std::cout << "\033[31;49m" << "X" << "\033[0m" << " | ";
         }
     }
     std::cout << std::endl;
