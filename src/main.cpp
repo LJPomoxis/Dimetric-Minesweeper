@@ -2,41 +2,50 @@
 #include <SFML/Window.hpp>
 #include <iostream>
 #include "field/field.hpp"
+#include "renderer/renderer.hpp"
 
 int main() {
     int width = 20;
     int height = 20;
+    int windowW = 800;
+    int windowH = 600;
     Field field(width, height);
-    sf::Window window(sf::VideoMode({800, 600}), "Iso Minesweeper");
+    sf::Window window(sf::VideoMode({windowW, windowH}), "Iso Minesweeper");
+    Renderer renderer(windowW, windowH); // change to use window
 
     const auto onClose = [&window](const sf::Event::Closed&) {
             window.close();
     };
 
     const auto onKeyPressed = [&window](const sf::Event::KeyPressed& keyPressed) {
-            if (keyPressed.scancode == sf::Keyboard::Scancode::Escape)
-                window.close();
-        };
+        if (keyPressed.scancode == sf::Keyboard::Scancode::Escape)
+            window.close();
+    };
 
-    int x;
-    int y;
+    const auto onClick = [&window, &renderer, &field](const sf::Event::MouseButtonReleased& mousePressed) {
+        if (mousePressed.button == sf::Mouse::Button::Left) {
+            field.cellSelected(renderer.screenToField(field.getWidth(), field.getHeight()));
+        }
+    };
+
     while (window.isOpen())
     {
-        if (field.getGameState()) {
-            window.close();
+        if (!field.getGameState()) {
+            field.revealField();
+            renderer.renderField(window);
         }
 
-        window.handleEvents(onClose, onKeyPressed);
+        window.handleEvents(onClose, onKeyPressed, onClick);
 
-        field.printAsciiField();
-        std::cout << "Enter x pos:";
-        std::cin >> x;
-        std::cout << "Enter y pos:";
-        std::cin >> y;
-        field.cellSelected(x,y);
+        //field.printAsciiField();
+        renderer.renderField(window);
+
+        // clear
+        // draw
+        // display
     }
 
-    field.revealField();
-    field.printAsciiField();
+
+    //field.printAsciiField();
     return 0;
 }
