@@ -1,9 +1,10 @@
 #include "field/field.hpp"
+#include <SFML/Window.hpp>
 #include <iostream>
 #include <random>
 
 Field::Field(int w, int h) : width(w), height(h), cells(h*w) {
-    numMines = (width * height) / 6;
+    numMines = (width * height) / mineRatio;
 }
 
 
@@ -95,7 +96,9 @@ void Field::checkNeighbors(int x, int y) {
     }
 }
 
-void Field::cellSelected(int x, int y) {
+void Field::cellSelected(sf::Vector2i coords) {
+    int x = coords.x;
+    int y = coords.y;
     if (!gameStarted) {
         setMines(x, y);
     }
@@ -114,8 +117,10 @@ void Field::cellSelected(int x, int y) {
     }
 }
 
-void Field::clearField() {
-    std::vector<Cell>().swap(cells);
+void Field::newField(int width, int height) {
+    gameStarted = false;
+    numMines = (width * height) / mineRatio;
+    std::vector<Cell>(width*height).swap(cells);
 }
 
 void Field::revealField() {
